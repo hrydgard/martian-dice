@@ -83,15 +83,12 @@ func (m *MartianState) Roll() {
   }
 }
 
-// Debug print
 func (m MartianState) PrintDice() {
   for i := range(m.dice) {
-    // fmt.Println(i)
-    fmt.Print(names[m.dice[i].value])
     if m.dice[i].locked {
-      fmt.Print("*")
+      fmt.Printf("[%s]", names[m.dice[i].value])
     } else {
-      fmt.Print(" ")
+      fmt.Printf(" %s ", names[m.dice[i].value])
     }
     fmt.Print(" ")
   }
@@ -109,6 +106,7 @@ func (m MartianState) PrintState() {
   fmt.Println("Humans:", m.keptHumans)
   fmt.Println("Cows:", m.keptCows)
   fmt.Println("chIcken:", m.keptChicken)
+  fmt.Println("")
 }
 
 func (m *MartianState) NumDiceOfType(dieType int) int {
@@ -218,8 +216,18 @@ func (m *MartianState) ComputeScore() (int, int) {
 }
 
 func main() {
+  for x := 0; x < 10; x++ {
+    fmt.Println("")
+  }
   fmt.Println("Martian Dice")
   fmt.Println("============")
+  fmt.Println("Abduct humans, cows and chicken! You get 1 point for each.")
+  fmt.Println("Bonus points for abducting all three in one turn.")
+  fmt.Println("You can only capture each kind once in a turn.")
+  fmt.Println("Type Q to quit at any time.")
+  fmt.Println("Abbreviations: T = Tank, D = Death Ray, C = Cow, I = Chicken, H = Human.")
+  fmt.Println("")
+
   reader := bufio.NewReader(os.Stdin)
   var m MartianState;
   curPlayer := 0
@@ -227,7 +235,7 @@ func main() {
   rand.Seed(time.Now().UnixNano())
 
   numPlayers := 1
-  fmt.Println("How many players?")
+  fmt.Print("How many players?\n> ")
   _, err := fmt.Scanf("%d", &numPlayers)
   if err != nil {
     fmt.Println("??? Defaulting to 1 player.")
@@ -238,7 +246,7 @@ func main() {
   p := make([]PlayerState, numPlayers)
 
   for {
-    fmt.Println("\n==== Player", curPlayer + 1, "  Score:", p[curPlayer].Score, "=====")
+    fmt.Printf("\n==== Player %d's turn (total score: %d) ====\n", curPlayer + 1, p[curPlayer].Score)
 
     m.Reset()
     m.Roll()
@@ -253,7 +261,7 @@ func main() {
         break
       }
 
-      fmt.Println("Choose what to keep:")
+      fmt.Print("Keep/abduct: ")
       if m.CanKeepCreature(deathray) {
         fmt.Printf(" D (%d) ", m.NumUnlockedDiceOfType(deathray))
       }
@@ -266,8 +274,9 @@ func main() {
       if m.CanKeepCreature(chicken) {
         fmt.Printf(" I (%d) ", m.NumUnlockedDiceOfType(chicken))
       }
-      fmt.Println(" E (end turn)")
+      fmt.Printf(" E (end turn)\n> ")
       command, _ := reader.ReadString('\n')
+      fmt.Println()
       command = strings.TrimSpace(strings.ToUpper(command))
       if command == "Q" {
         goto leave
@@ -286,15 +295,25 @@ func main() {
     }
 
     if m.keptTanks > m.keptDeathrays {
-      fmt.Println("More tanks than death rays! You are dead, no points for you.")
+      fmt.Printf("The %d tanks easily shot down your %d death rays! No points for you.\n\n", m.keptTanks, m.keptDeathrays)
+
     } else {
       score, bonus := m.ComputeScore()
+      if score > 0 {
+        fmt.Printf("You successfully abducted %d HUMANS, %d COWS and %d CHICKEN!\n", m.keptHumans, m.keptCows, m.keptChicken)
+      } else {
+        fmt.Printf("You failed to abduct any creatures! 0 points.")
+      }
       if bonus > 0 {
-        fmt.Println("Got", bonus, "bonus points for rescuing all!")
+        fmt.Println("Got", bonus, "bonus points for abducting all kinds!")
       }
       p[curPlayer].Score += score + bonus
       fmt.Println("You scored", score+bonus, "points! Adding to your total, now", p[curPlayer].Score)
+      fmt.Println("")
     }
+
+    fmt.Println("Press Enter to continue.")
+    reader.ReadString('\n')
 
     if p[curPlayer].Score >= 25 {
       fmt.Println("Player", curPlayer, "reached score 25 and won!")
