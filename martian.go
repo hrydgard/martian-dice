@@ -21,6 +21,7 @@ import (
   "time"
   "math/rand"
   "errors"
+  "sort"
 )
 
 type Die struct {
@@ -49,6 +50,26 @@ type MartianState struct {
   keptHumans int
   keptCows int
   keptChicken int
+}
+
+type DiceSlice []Die
+
+func (dice DiceSlice) Swap(i, j int) {
+  dice[i], dice[j] = dice[j], dice[i]
+}
+
+func (dice DiceSlice) Less(i, j int) bool {
+  if (dice[i].locked && !dice[j].locked) {
+    return true
+  }
+  if (!dice[i].locked && dice[j].locked) {
+    return false
+  }
+  return dice[i].value < dice[j].value
+}
+
+func (dice DiceSlice) Len() int {
+  return len(dice)
 }
 
 var names [5]string = [5]string{"T", "D", "H", "C", "I"}
@@ -81,6 +102,12 @@ func (m *MartianState) Roll() {
       m.dice[i].value = RollDie();
     }
   }
+
+  // Automatically lock tanks
+  m.Keep(tank)
+
+  // Sort the dice.
+  sort.Sort(DiceSlice(m.dice[:]))
 }
 
 func (m MartianState) PrintDice() {
@@ -224,8 +251,9 @@ func main() {
   fmt.Println("Abduct humans, cows and chicken! You get 1 point for each.")
   fmt.Println("Bonus points for abducting all three in one turn.")
   fmt.Println("You can only capture each kind once in a turn.")
+  fmt.Println("You must end your turn with more death rays than enemy tanks.")
   fmt.Println("Type Q to quit at any time.")
-  fmt.Println("Abbreviations: T = Tank, D = Death Ray, C = Cow, I = Chicken, H = Human.")
+  fmt.Println("Abbreviations: T = Enemy Tank, D = Death Ray, C = Cow, I = Chicken, H = Human.")
   fmt.Println("")
 
   reader := bufio.NewReader(os.Stdin)
@@ -250,8 +278,6 @@ func main() {
 
     m.Reset()
     m.Roll()
-    // Automatically lock tanks
-    m.Keep(tank)
     for {
       m.PrintState()
       m.PrintDice()
@@ -285,8 +311,6 @@ func main() {
       if err == nil {
         // Valid move, let's roll dice.
         m.Roll()
-        // Automatically lock tanks
-        m.Keep(tank)
       }
 
       if command == "E" {
