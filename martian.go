@@ -111,7 +111,12 @@ func (m *MartianState) Roll() {
 }
 
 func (m MartianState) PrintDice() {
+  last := m.dice[0].value
   for i := range(m.dice) {
+    if m.dice[i].value != last {
+      last = m.dice[i].value
+      fmt.Println()
+    }
     if m.dice[i].locked {
       fmt.Printf("[%s]", names[m.dice[i].value])
     } else {
@@ -123,6 +128,7 @@ func (m MartianState) PrintDice() {
 }
 
 func (m MartianState) PrintState() {
+  return
   fmt.Println("Tanks:", m.keptTanks)
   fmt.Print("Death Rays: ", m.keptDeathrays)
   if m.keptDeathrays < m.keptTanks {
@@ -163,15 +169,13 @@ func (m *MartianState) LockDiceOfType(dieType int) {
   }
 }
 
-func (m *MartianState) Keep(what int) (int, error) {
+func (m *MartianState) Keep(what int) error {
   if !m.CanKeepCreature(what) {
-    return 0, errors.New("Can't keep this creature")
+    return errors.New("Can't keep/abduct this creature!")
   }
-  count := 0
   for d := range(m.dice) {
     if m.dice[d].value == what && !m.dice[d].locked {
       m.dice[d].locked = true
-      count++
       switch (what) {
       case tank:
         m.keptTanks += 1
@@ -186,7 +190,7 @@ func (m *MartianState) Keep(what int) (int, error) {
       }
     }
   }
-  return count, nil
+  return nil
 }
 
 func PrintUsage() {
@@ -213,17 +217,13 @@ func (m *MartianState) CanKeepCreature(value int) bool {
 func (m *MartianState) ProcessCommand(cmd string) error {
   switch cmd {
   case "C":
-    m.Keep(cow)
-    return nil
+    return m.Keep(cow)
   case "I":
-    m.Keep(chicken)
-    return nil
+    return m.Keep(chicken)
   case "H":
-    m.Keep(human)
-    return nil
+    return m.Keep(human)
   case "D":
-    m.Keep(deathray)
-    return nil
+    return m.Keep(deathray)
   }
   return errors.New("Bad command")
 }
@@ -311,6 +311,9 @@ func main() {
       if err == nil {
         // Valid move, let's roll dice.
         m.Roll()
+      } else {
+        fmt.Println(err)
+        fmt.Println()
       }
 
       if command == "E" {
@@ -320,7 +323,6 @@ func main() {
 
     if m.keptTanks > m.keptDeathrays {
       fmt.Printf("The %d tanks easily shot down your %d death rays! No points for you.\n\n", m.keptTanks, m.keptDeathrays)
-
     } else {
       score, bonus := m.ComputeScore()
       if score > 0 {
@@ -340,7 +342,7 @@ func main() {
     reader.ReadString('\n')
 
     if p[curPlayer].Score >= 25 {
-      fmt.Println("Player", curPlayer, "reached score 25 and won!")
+      fmt.Println("Player", curPlayer + 1, "reached score 25 and won!")
       os.Exit(0)
     }
 
